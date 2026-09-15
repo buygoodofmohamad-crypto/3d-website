@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سایت سه‌بعدی من</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background: #0a0a0f;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+    }
+    header {
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00f5d4, #7b2cbf, #ff006e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      text-shadow: 0 0 40px rgba(0, 245, 212, 0.3);
+    }
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.7;
+      letter-spacing: 1px;
+    }
+    .controls-hint {
+      text-align: center;
+      font-size: 0.9rem;
+      opacity: 0.5;
+      background: rgba(255,255,255,0.05);
+      padding: 12px 24px;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      margin: 0 auto;
+      width: fit-content;
+    }
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.4;
+    }
+    /* Loading */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.6s ease;
+    }
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loader {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(0,245,212,0.2);
+      border-top-color: #00f5d4;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="loader"></div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div class="overlay">
+    <header>
+      <h1>دنیای سه‌بعدی من</h1>
+      <p>ساخته شده با Three.js و GitHub Pages</p>
+    </header>
+
+    <div class="controls-hint">
+      موس را بکشید تا بچرخد • اسکرول برای زوم
+    </div>
+
+    <footer>
+      ساخته شده با ❤️ توسط شما
+    </footer>
+  </div>
+
+  <!-- Three.js از CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Scene ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0f);
+    scene.fog = new THREE.FogExp2(0x0a0a0f, 0.035);
+
+    // --- Camera ---
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(0, 2, 8);
+
+    // --- Renderer ---
+    const container = document.getElementById('canvas-container');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // --- Lights ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    directionalLight.position.set(5, 10, 7);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
+    const pointLight1 = new THREE.PointLight(0x00f5d4, 2, 20);
+    pointLight1.position.set(-4, 3, 2);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x7b2cbf, 2, 20);
+    pointLight2.position.set(4, 2, -3);
+    scene.add(pointLight2);
+
+    // --- Main Cube Group ---
+    const cubeGroup = new THREE.Group();
+    scene.add(cubeGroup);
+
+    // Central glowing cube
+    const geometry = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x00f5d4,
+      metalness: 0.7,
+      roughness: 0.2,
+      emissive: 0x00f5d4,
+      emissiveIntensity: 0.15
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    cubeGroup.add(cube);
+
+    // Wireframe overlay
+    const wireframe = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
+    );
+    cube.add(wireframe);
+
+    // Orbiting smaller cubes
+    const smallCubes = [];
+    const colors = [0xff006e, 0x7b2cbf, 0x00f5d4, 0xffbe0b, 0xfb5607];
+    for (let i = 0; i < 8; i++) {
+      const smallGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+      const smallMat = new THREE.MeshStandardMaterial({
+        color: colors[i % colors.length],
+        metalness: 0.6,
+        roughness: 0.3,
+        emissive: colors[i % colors.length],
+        emissiveIntensity: 0.2
+      });
+      const smallCube = new THREE.Mesh(smallGeo, smallMat);
+      const angle = (i / 8) * Math.PI * 2;
+      const radius = 3.5;
+      smallCube.position.set(
+        Math.cos(angle) * radius,
+        Math.sin(angle * 1.5) * 1.2,
+        Math.sin(angle) * radius
+      );
+      smallCube.userData = { angle, radius, speed: 0.3 + Math.random() * 0.4 };
+      cubeGroup.add(smallCube);
+      smallCubes.push(smallCube);
+    }
+
+    // Particles
+    const particlesCount = 400;
+    const positions = new Float32Array(particlesCount * 3);
+    for (let i = 0; i < particlesCount * 3; i++) {
+      positions[i] = (Math.random() - 0.5) * 30;
+    }
+    const particlesGeo = new THREE.BufferGeometry();
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particlesMat = new THREE.PointsMaterial({
+      color: 0x00f5d4,
+      size: 0.05,
+      transparent: true,
+      opacity: 0.6
+    });
+    const particles = new THREE.Points(particlesGeo, particlesMat);
+    scene.add(particles);
+
+    // Floor
+    const floorGeo = new THREE.PlaneGeometry(40, 40);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x111118,
+      metalness: 0.8,
+      roughness: 0.4
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -3;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Grid helper
+    const grid = new THREE.GridHelper(40, 40, 0x222233, 0x111122);
+    grid.position.y = -2.99;
+    scene.add(grid);
+
+    // --- Controls ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 4;
+    controls.maxDistance = 20;
+    controls.maxPolarAngle = Math.PI / 1.8;
+
+    // --- Animation ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+
+      // Rotate main cube
+      cube.rotation.x = t * 0.4;
+      cube.rotation.y = t * 0.6;
+
+      // Orbit small cubes
+      smallCubes.forEach((c, i) => {
+        const data = c.userData;
+        data.angle += data.speed * 0.01;
+        c.position.x = Math.cos(data.angle) * data.radius;
+        c.position.z = Math.sin(data.angle) * data.radius;
+        c.position.y = Math.sin(data.angle * 1.5 + t) * 1.2;
+        c.rotation.x += 0.02;
+        c.rotation.y += 0.03;
+      });
+
+      // Gentle particle rotation
+      particles.rotation.y = t * 0.02;
+
+      // Pulse lights
+      pointLight1.intensity = 1.5 + Math.sin(t * 2) * 0.5;
+      pointLight2.intensity = 1.5 + Math.cos(t * 1.7) * 0.5;
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Hide loading
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+      }, 500);
+    });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
